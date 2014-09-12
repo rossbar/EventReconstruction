@@ -1,5 +1,6 @@
 import numpy as np
-from analysisHelperFunctions import onAC, onDC, inge1, inge2
+from analysisHelperFunctions import onAC, onDC, inge1, inge2,\
+                                    checkForEnergyMatch
 
 #class PotentialEvent(object):
 #    '''Class for encapsulating a potential gamma ray event. Consists only of
@@ -13,6 +14,7 @@ from analysisHelperFunctions import onAC, onDC, inge1, inge2
 class PotentialSingleDetectorEvent(object):
     '''Class encapsulating all of the time-correlated strip fires from in a
        single detector'''
+
     def __init__(self, ev):
         '''Usage:
              potential_event = PotentialSingleDetectorEvent(ev)
