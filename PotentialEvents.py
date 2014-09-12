@@ -57,7 +57,7 @@ class PotentialSingleDetectorEvent(object):
 
         # Check the total readout energies to see if the event can be
         # reconstructed
-        if self.can_reconstruct is True or self.can_reconstruct is None:
+        if self.can_reconstruct is None:
             tot_en_AC, tot_en_DC = self.ac['ADC_value'].sum(),\
                                    self.dc['ADC_value'].sum()
             if checkForEnergyMatch(tot_en_AC, tot_en_DC):
@@ -67,6 +67,8 @@ class PotentialSingleDetectorEvent(object):
                 self.type = 'ENERGY_MISMATCH'
             # Total energy difference between the two electrods
             self.dE = np.abs(tot_en_AC - tot_en_DC)
+            # Total time difference between the 
+            self.dT = ev['timestamp'].max() - ev['timestamp'].min()
 
         # Determine the type of the event
         self.determine_event_type()
@@ -76,7 +78,8 @@ class PotentialSingleDetectorEvent(object):
         statement += 'Event can be reconstruted: %s\n' %(self.can_reconstruct)
         statement += 'Event type: %s\n' %(self.type)
         if self.can_reconstruct:
-            statement += 'Electrode dE = %.2f\n\n' %(self.dE)
+            statement += 'Electrode dE = %.2f\n' %(self.dE)
+            statement += 'Event dT = %.2f\n\n' %(self.dT)
             statement += 'AC readouts:\n'
             for rdout in self.ac:
                 statement += '\t%s\n' %(rdout.ravel())
