@@ -37,6 +37,10 @@ class PotentialSingleDetectorEvent(object):
         self.can_reconstruct = None
         self.type = None
 
+        # Determine which detector the event is in
+        if len(inge1(ev)) == 0: self.det = 2
+        else: self.det = 1
+
         # Split up readouts based on detector side. If there are no readouts on
         # one of the sides, set the error case appropriately
         ac, dc = onAC(ev), onDC(ev)
@@ -63,6 +67,23 @@ class PotentialSingleDetectorEvent(object):
                 self.type = 'ENERGY_MISMATCH'
             # Total energy difference between the two electrods
             self.dE = np.abs(tot_en_AC - tot_en_DC)
+
+        # Determine the type of the event
+        self.determine_event_type()
+
+    def __str__(self):
+        statement = 'Event in Ge%s\n' %(self.det)
+        statement += 'Event can be reconstruted: %s\n' %(self.can_reconstruct)
+        statement += 'Event type: %s\n' %(self.type)
+        if self.can_reconstruct:
+            statement += 'Electrode dE = %.2f\n\n' %(self.dE)
+            statement += 'AC readouts:\n'
+            for rdout in self.ac:
+                statement += '\t%s\n' %(rdout.ravel())
+            statement += '\nDC readouts:\n'
+            for rdout in self.dc:
+                statement += '\t%s\n' %(rdout.ravel())
+        return statement
 
     def determine_event_type(self):
         '''Simple pattern matching to determine the type of the event. Can 
