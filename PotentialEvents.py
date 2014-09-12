@@ -63,3 +63,28 @@ class PotentialSingleDetectorEvent(object):
                 self.type = 'ENERGY_MISMATCH'
             # Total energy difference between the two electrods
             self.dE = np.abs(tot_en_AC - tot_en_DC)
+
+    def determine_event_type(self):
+        '''Simple pattern matching to determine the type of the event. Can 
+           implement more complicated matching patterns as needed.'''
+        # If there is only one readout per side, it is a 1-1 interaction
+        if len(self.ac) == 1 and len(self.dc) == 1:
+            self.type = '1-1'
+            self.can_reconstruct = True
+        # If there is one readout on one side and two on the other, it is a 1-2
+        # interaction. These can arise from several scenarios
+        elif len(self.ac) == 1 and len(self.dc) == 2:
+            self.type = '1-2'
+            self.double_side = self.dc
+            self.single_side = self.ac
+        elif len(self.ac) == 2 and len(self.dc) == 1:
+            self.type = '1-2'
+            self.double_side = self.ac
+            self.single_side = self.dc
+        # If there are two readouts on each side, 2-2 interaction
+        elif len(self.ac) == 2 and len(self.dc) == 2:
+            self.type = '2-2'
+        # If there are more than two readouts per side, it is considered a high
+        # order event, for now
+        else:
+            self.type = 'Event multiplicity > 2'
