@@ -12,7 +12,7 @@ class PotentialEvent(object):
         # Initial values
         self.ge1 = None
         self.ge2 = None
-        self.num_dets = '1'
+        self.num_dets = 1
 
         # Determine which detector has potential events
         ge1, ge2 = inge1(ev), inge2(ev)
@@ -21,8 +21,8 @@ class PotentialEvent(object):
 
         # Determine how many detectors were involved in the event
         if self.ge1 is not None and self.ge2 is not None:
-            self.num_dets = '2'
-        else: self.num_dets = '1'
+            self.num_dets = 2
+        else: self.num_dets = 1
         
     def __str__(self):
         statement = self.ge1.__str__()
