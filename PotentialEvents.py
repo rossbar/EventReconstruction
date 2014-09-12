@@ -12,11 +12,17 @@ class PotentialEvent(object):
         # Initial values
         self.ge1 = None
         self.ge2 = None
+        self.num_dets = '1'
 
         # Determine which detector has potential events
         ge1, ge2 = inge1(ev), inge2(ev)
         if len(ge1) > 0: self.ge1 = PotentialSingleDetectorEvent(ge1)
         if len(ge2) > 0: self.ge2 = PotentialSingleDetectorEvent(ge2)
+
+        # Determine how many detectors were involved in the event
+        if self.ge1 is not None and self.ge2 is not None:
+            self.num_dets = '2'
+        else: self.num_dets = '1'
         
     def __str__(self):
         statement = self.ge1.__str__()
@@ -85,13 +91,13 @@ class PotentialSingleDetectorEvent(object):
             self.dT = ev['timestamp'].max() - ev['timestamp'].min()
 
         # Determine the type of the event
-        self.determine_event_type()
+        if self.can_reconstruct is not False: self.determine_event_type()
 
     def __str__(self):
         statement = 'Event in Ge%s\n' %(self.det)
         statement += 'Event can be reconstruted: %s\n' %(self.can_reconstruct)
         statement += 'Event type: %s\n' %(self.type)
-        if self.can_reconstruct:
+        if self.can_reconstruct or self.type == 'ENERGY_MISMATCH':
             statement += 'Electrode dE = %.2f\n' %(self.dE)
             statement += 'Event dT = %.2f\n\n' %(self.dT)
             statement += 'AC readouts:\n'
