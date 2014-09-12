@@ -2,14 +2,28 @@ import numpy as np
 from analysisHelperFunctions import onAC, onDC, inge1, inge2,\
                                     checkForEnergyMatch
 
-#class PotentialEvent(object):
-#    '''Class for encapsulating a potential gamma ray event. Consists only of
-#       time-correlated readouts before any reconstruction takes place.'''
-#
-#    def __init__(self, ev):
-#        '''Take time-correlated readouts and break them up by detector and
-#           side.'''
-#        ge1, ge2 = inge1(ev), inge2(ev)
+class PotentialEvent(object):
+    '''Class for encapsulating a potential gamma ray event. Consists only of
+       time-correlated readouts before any reconstruction takes place.'''
+
+    def __init__(self, ev):
+        '''Take time-correlated readouts and break them up by detector and
+           side.'''
+        # Initial values
+        self.ge1 = None
+        self.ge2 = None
+
+        # Determine which detector has potential events
+        ge1, ge2 = inge1(ev), inge2(ev)
+        if len(ge1) > 0: self.ge1 = PotentialSingleDetectorEvent(ge1)
+        if len(ge2) > 0: self.ge2 = PotentialSingleDetectorEvent(ge2)
+        
+    def __str__(self):
+        statement = self.ge1.__str__()
+        statement += '\n\n'
+        statement += self.ge2.__str__()
+        return statement
+
 
 class PotentialSingleDetectorEvent(object):
     '''Class encapsulating all of the time-correlated strip fires from in a
