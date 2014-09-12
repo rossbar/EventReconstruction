@@ -61,3 +61,5 @@ class PotentialSingleDetectorEvent(object):
             else:
                 self.can_reconstruct = False
                 self.type = 'ENERGY_MISMATCH'
+            # Total energy difference between the two electrods
+            self.dE = np.abs(tot_en_AC - tot_en_DC)
