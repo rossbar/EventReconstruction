@@ -38,6 +38,13 @@ class PotentialEvent(object):
         self.ge2.ac.clusterize_data()
         self.ge2.dc.clusterize_data()
 
+    def trim_unused_transients(self):
+        '''Call side transient removal'''
+        self.ge1.ac.remove_redundant_transients()
+        self.ge1.dc.remove_redundant_transients()
+        self.ge2.ac.remove_redundant_transients()
+        self.ge2.dc.remove_redundant_transients()
+
 class Detector(object):
     errors = []
     total_energy = 0
@@ -94,10 +101,6 @@ class Side(object):
         '''Given all the readouts on the side, try to break them down into
            strips that correlate with each other. Use strip adjacency as a 
            starting point.'''
-#        # Clustering by adjacency
-#        det_diffs = self.data['detector'][1:] - self.data['detector'][:-1]
-#        ind_mask = det_diffs != 1
-#        self.cluster_inds = (np.arange(len(self.data))+1)[ind_mask]
         # Clustering by trigger
         for i in range(len(self.data)-1):
             next_trig = self.data['trigger'][i+1]
@@ -108,3 +111,25 @@ class Side(object):
                     self.cluster_inds = new_ind
                 else:
                     self.cluster_inds = np.concatenate((self.cluster_inds, np.array([i+1], dtype=int)))
+
+    def remove_redundant_transients(self):
+        '''Large charge deposits may cause non-adjacent neighbors to fire
+           (n+2, etc.). These signals are not currently used for anything.
+           This function removes them from the data.'''
+        # Only attempt if there is data to operate on
+        if len(self.data) > 0:
+            self.keep_mask = np.ones(len(self.data), dtype=bool)
+            # If there are three adjacent transient signals, remove the center one
+            for i in np.arange(1, len(self.data)-1):
+                prev_trig = self.data['trigger'][i-1]
+                cur_trig = self.data['trigger'][i]
+                next_trig = self.data['trigger'][i+1]
+                if prev_trig == 0 and cur_trig == 0 and next_trig == 0:
+                    self.keep_mask[i] = False
+            # Handle edge cases
+            if self.data['trigger'][0] == 0 and self.data['trigger'][1] == 0:
+                self.keep_mask[0] = False
+            if self.data['trigger'][-2] == 0 and self.data['trigger'][-1] == 0:
+                self.keep_mask[-1] = False
+            # Remove the unused transients
+            self.data = self.data[self.keep_mask]
