@@ -41,4 +41,16 @@ def checkForEnergyMatch(en1, en2, sigma=2):
     else: retVal = False
     return retVal
 
-# 
+# Trigger correction
+def correct_trigger_flags(ev, transient_en_cut=10.0):
+    '''Use results of slow filter (ADC_value) in conjunction with the existing
+       trigger value to better determine whether charge was collected or not 
+       on each strip in the ev. 
+       
+       transient_en_cut determines the energy limit at which a signal is 
+       considered a transient or not'''
+    trig_mask = ev['ADC_value'] >= transient_en_cut
+    # Values below the cut are likely transients
+    ev['trigger'][np.invert(trig_mask)] = 0
+    ev['trigger'][trig_mask] = 1
+    return ev

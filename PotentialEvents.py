@@ -1,10 +1,12 @@
 import numpy as np
-from analysisHelperFunctions import onAC, onDC, inge1, inge2,\
-                                    checkForEnergyMatch
+from analysisHelperFunctions import *
 from error_codes import *
 
 class PotentialEvent(object):
-    def __init__(self, ev):
+    def __init__(self, ev, refine_triggers=True):
+        # Correct the trigger flags using info from the slow filter
+        if refine_triggers: ev = correct_trigger_flags(ev)
+        # Break data up by detector
         ge1, ge2 = inge1(ev), inge2(ev)
         self.ge1 = Detector(ge1)
         self.ge2 = Detector(ge2)
@@ -61,6 +63,7 @@ class Side(object):
         self.total_energy = ev[ev['trigger'] == 1]['ADC_value'].sum()
 
     def __str__(self):
+        self.data.sort(order='detector')
         outstr = ''
         for row in self.data:
             outstr += '    ' + str(row) + '\n'
