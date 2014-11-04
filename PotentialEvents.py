@@ -19,6 +19,9 @@ class PotentialEvent(object):
     def has_orphans(self):
         return self.ge1.has_orphans() or self.ge2.has_orphans()
 
+    def passes_energy_match(self):
+        return self.ge1.passes_energy_match() and self.ge2.passes_energy_match()
+
 class Detector(object):
     errors = []
     def __init__(self, ev):
@@ -42,10 +45,20 @@ class Detector(object):
             return True
         return False
 
+    def passes_energy_match(self):
+        if checkForEnergyMatch(self.ac.total_energy, self.dc.total_energy):
+            return True
+        else: 
+            self.errors.append(ENERGY_MATCH_FAILURE)
+            return False
+
 
 class Side(object):
     def __init__(self, ev):
+        # Set recarray to data
         self.data = ev
+        # Compute total energy collected on electrode
+        self.total_energy = ev[ev['trigger'] == 1]['ADC_value'].sum()
 
     def __str__(self):
         outstr = ''
