@@ -1,6 +1,7 @@
 import numpy as np
 from analysisHelperFunctions import onAC, onDC, inge1, inge2,\
                                     checkForEnergyMatch
+from error_codes import *
 
 class PotentialEvent(object):
     def __init__(self, ev):
@@ -15,7 +16,11 @@ class PotentialEvent(object):
         outstr += self.ge2.__str__()
         return outstr
 
+    def has_orphans(self):
+        return self.ge1.has_orphans() or self.ge2.has_orphans()
+
 class Detector(object):
+    errors = []
     def __init__(self, ev):
         ac, dc = onAC(ev), onDC(ev)
         self.ac = Side(ac)
@@ -27,6 +32,16 @@ class Detector(object):
         outstr += '  DC\n'
         outstr += self.dc.__str__()
         return outstr
+
+    def has_orphans(self):
+        if (len(self.ac.data) == 0) and (len(self.dc.data) > 0):
+            self.errors.append(DCONLY)
+            return True
+        elif (len(self.dc.data) == 0) and (len(self.ac.data) > 0):
+            self.errors.append(ACONLY)
+            return True
+        return False
+
 
 class Side(object):
     def __init__(self, ev):
