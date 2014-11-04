@@ -3,6 +3,7 @@ from analysisHelperFunctions import *
 from error_codes import *
 
 class PotentialEvent(object):
+    total_energy = 0
     def __init__(self, ev, refine_triggers=True):
         # Correct the trigger flags using info from the slow filter
         if refine_triggers: ev = correct_trigger_flags(ev)
@@ -22,7 +23,13 @@ class PotentialEvent(object):
         return self.ge1.has_orphans() or self.ge2.has_orphans()
 
     def passes_energy_match(self):
-        return self.ge1.passes_energy_match() and self.ge2.passes_energy_match()
+        ge1match = self.ge1.passes_energy_match()
+        ge2match = self.ge2.passes_energy_match()
+        if ge1match and ge2match:
+            self.total_energy = self.ge1.total_energy + self.ge2.total_energy
+            return True
+        else:
+            return False
 
     def clusterize(self):
         '''Call side clusterization.'''
@@ -33,6 +40,7 @@ class PotentialEvent(object):
 
 class Detector(object):
     errors = []
+    total_energy = 0
     def __init__(self, ev):
         ac, dc = onAC(ev), onDC(ev)
         self.ac = Side(ac)
@@ -56,6 +64,7 @@ class Detector(object):
 
     def passes_energy_match(self):
         if checkForEnergyMatch(self.ac.total_energy, self.dc.total_energy):
+            self.total_energy = np.max((self.ac.total_energy, self.dc.total_energy))
             return True
         else: 
             self.errors.append(ENERGY_MATCH_FAILURE)
@@ -85,6 +94,17 @@ class Side(object):
         '''Given all the readouts on the side, try to break them down into
            strips that correlate with each other. Use strip adjacency as a 
            starting point.'''
-        det_diffs = self.data['detector'][1:] - self.data['detector'][:-1]
-        ind_mask = det_diffs != 1
-        self.cluster_inds = (np.arange(len(self.data))+1)[ind_mask]
+#        # Clustering by adjacency
+#        det_diffs = self.data['detector'][1:] - self.data['detector'][:-1]
+#        ind_mask = det_diffs != 1
+#        self.cluster_inds = (np.arange(len(self.data))+1)[ind_mask]
+        # Clustering by trigger
+        for i in range(len(self.data)-1):
+            next_trig = self.data['trigger'][i+1]
+            cur_trig = self.data['trigger'][i]
+            if next_trig == 0 and cur_trig == 0 and (1 in self.data['trigger'][i+1:]):
+                new_ind = np.array([i+1], dtype=int)
+                if self.cluster_inds is None:
+                    self.cluster_inds = new_ind
+                else:
+                    self.cluster_inds = np.concatenate((self.cluster_inds, np.array([i+1], dtype=int)))
