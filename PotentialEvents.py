@@ -33,17 +33,13 @@ class PotentialEvent(object):
 
     def clusterize(self):
         '''Call side clusterization.'''
-        self.ge1.ac.clusterize_data()
-        self.ge1.dc.clusterize_data()
-        self.ge2.ac.clusterize_data()
-        self.ge2.dc.clusterize_data()
+        self.ge1.clusterize()
+        self.ge2.clusterize()
 
     def trim_unused_transients(self):
         '''Call side transient removal'''
-        self.ge1.ac.remove_redundant_transients()
-        self.ge1.dc.remove_redundant_transients()
-        self.ge2.ac.remove_redundant_transients()
-        self.ge2.dc.remove_redundant_transients()
+        self.ge1.trim_unused_transients()
+        self.ge2.trim_unused_transients()
 
 class Detector(object):
     errors = []
@@ -76,6 +72,16 @@ class Detector(object):
         else: 
             self.errors.append(ENERGY_MATCH_FAILURE)
             return False
+
+    def clusterize(self):
+        '''Call clusterization for each side'''
+        self.ac.clusterize_data()
+        self.dc.clusterize_data()
+
+    def trim_unused_transients(self):
+        '''Call transient trimming for each side'''
+        self.ac.remove_redundant_transients()
+        self.dc.remove_redundant_transients()
 
 class Side(object):
     def __init__(self, ev):
@@ -140,3 +146,23 @@ class Side(object):
                 self.keep_mask[-1] = False
             # Remove the unused transients
             self.data = self.data[self.keep_mask]
+
+class ReadoutCluster(object):
+    def __init__(self, ev):
+        # Sort by detector
+        ev.sort(order='detector')
+        # Store data
+        self.data = ev
+        self.num_trigs = (ev['trigger'] == 1).sum()
+        self.num_strips = len(ev)
+        self.trigger_pattern = ev['trigger']
+
+    def condense_to_edata(self):
+        '''Take the data associated with the readout cluster, and condense it
+           into a single edata-type output which includes stuff from the
+           raw signals, like transient ratios, t50, etc.'''
+        # Charge collection on only one strip
+        if self.num_trigs == 1:
+            # Get t50 on charge collecting strip
+            cc_strip = self.data[self.data['trigger'] == 1]
+            t50 = search_t50(cc_strip['signal'])
