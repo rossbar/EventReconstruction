@@ -24,6 +24,13 @@ class PotentialEvent(object):
     def passes_energy_match(self):
         return self.ge1.passes_energy_match() and self.ge2.passes_energy_match()
 
+    def clusterize(self):
+        '''Call side clusterization.'''
+        self.ge1.ac.clusterize_data()
+        self.ge1.dc.clusterize_data()
+        self.ge2.ac.clusterize_data()
+        self.ge2.dc.clusterize_data()
+
 class Detector(object):
     errors = []
     def __init__(self, ev):
@@ -57,14 +64,27 @@ class Detector(object):
 
 class Side(object):
     def __init__(self, ev):
+        # Sort data by detector upon receiving
+        ev.sort(order='detector')
         # Set recarray to data
         self.data = ev
         # Compute total energy collected on electrode
         self.total_energy = ev[ev['trigger'] == 1]['ADC_value'].sum()
+        # No clusterization yet
+        self.cluster_inds = None
 
     def __str__(self):
-        self.data.sort(order='detector')
         outstr = ''
-        for row in self.data:
+        for i, row in enumerate(self.data):
+            if self.cluster_inds is not None:
+                if i in self.cluster_inds: outstr += '\n'
             outstr += '    ' + str(row) + '\n'
         return outstr
+
+    def clusterize_data(self):
+        '''Given all the readouts on the side, try to break them down into
+           strips that correlate with each other. Use strip adjacency as a 
+           starting point.'''
+        det_diffs = self.data['detector'][1:] - self.data['detector'][:-1]
+        ind_mask = det_diffs != 1
+        self.cluster_inds = (np.arange(len(self.data))+1)[ind_mask]
