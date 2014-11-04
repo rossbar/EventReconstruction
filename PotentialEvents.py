@@ -77,7 +77,6 @@ class Detector(object):
             self.errors.append(ENERGY_MATCH_FAILURE)
             return False
 
-
 class Side(object):
     def __init__(self, ev):
         # Sort data by detector upon receiving
@@ -101,6 +100,8 @@ class Side(object):
         '''Given all the readouts on the side, try to break them down into
            strips that correlate with each other. Use strip adjacency as a 
            starting point.'''
+        # Reset the clustering
+        if self.cluster_inds is not None: self.cluster_inds = None
         # Clustering by trigger
         for i in range(len(self.data)-1):
             next_trig = self.data['trigger'][i+1]
@@ -117,15 +118,21 @@ class Side(object):
            (n+2, etc.). These signals are not currently used for anything.
            This function removes them from the data.'''
         # Only attempt if there is data to operate on
-        if len(self.data) > 0:
+        if len(self.data) > 1:
             self.keep_mask = np.ones(len(self.data), dtype=bool)
             # If there are three adjacent transient signals, remove the center one
             for i in np.arange(1, len(self.data)-1):
                 prev_trig = self.data['trigger'][i-1]
                 cur_trig = self.data['trigger'][i]
                 next_trig = self.data['trigger'][i+1]
+                # trig 0 readout between two other trig 0 readouts is redundant
                 if prev_trig == 0 and cur_trig == 0 and next_trig == 0:
                     self.keep_mask[i] = False
+                # Another neighbor trig but subsequent readout isn't adjacent
+                elif prev_trig == 0 and cur_trig == 0 and next_trig == 1:
+                    diff = self.data['detector'][i+1] - self.data['detector'][i]
+                    if diff > 1:
+                        self.keep_mask[i] = False
             # Handle edge cases
             if self.data['trigger'][0] == 0 and self.data['trigger'][1] == 0:
                 self.keep_mask[0] = False
