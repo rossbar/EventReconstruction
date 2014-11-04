@@ -15,18 +15,18 @@ NUMCH = 38
 
 # Functions for splitting event data by detector and side
 def inge1( ev ):
-    dets = ev.detector
+    dets = ev['detector']
     return ev[(dets < NUMCH) | ((dets >= NUMCH*2)&(dets < NUMCH*3)) ]
 
 def inge2( ev ):
-    dets = ev.detector
+    dets = ev['detector']
     return ev[((dets >= 1*NUMCH)&(dets < 2*NUMCH)) | (dets >= NUMCH*3) ]
 
 def onAC( ev ):
-    return ev[ev.detector >= 2*NUMCH]
+    return ev[ev['detector'] >= 2*NUMCH]
 
 def onDC( ev ):
-    return ev[ev.detector < 2*NUMCH]
+    return ev[ev['detector'] < 2*NUMCH]
 
 # Energy matching
 def determineEnergyDifference(en1, en2):
@@ -40,3 +40,5 @@ def checkForEnergyMatch(en1, en2, sigma=2):
     if other >= maxEnergy - sigma*np.sqrt( maxEnergy ): retVal = True
     else: retVal = False
     return retVal
+
+# 
