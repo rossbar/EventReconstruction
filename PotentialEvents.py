@@ -1,6 +1,13 @@
 import numpy as np
 from analysisHelperFunctions import *
 from error_codes import *
+from dtypes import create_refined_edata
+
+# Framewor imports
+import sys
+import os
+sys.path.append(os.path.expanduser('~')+r'/PythonFramework')
+from src.CAnalysis.canalysis import search_t50
 
 class PotentialEvent(object):
     total_energy = 0
@@ -157,12 +164,26 @@ class ReadoutCluster(object):
         self.num_strips = len(ev)
         self.trigger_pattern = ev['trigger']
 
-    def condense_to_edata(self):
+    def condense_to_edata(self, rdata):
         '''Take the data associated with the readout cluster, and condense it
            into a single edata-type output which includes stuff from the
            raw signals, like transient ratios, t50, etc.'''
         # Charge collection on only one strip
         if self.num_trigs == 1:
-            # Get t50 on charge collecting strip
+            # Setup output
             cc_strip = self.data[self.data['trigger'] == 1]
-            t50 = search_t50(cc_strip['signal'])
+            edata_out = create_refined_edata(cc_strip)
+            # Fill in t50
+            signal = rdata[cc_strip['rid']]
+            t50 = search_t50(signal)
+            # If it has a transient on each side, do transient analysis
+            if np.array_equal(self.trigger_pattern, np.array([0,1,0])):
+                # Get signals
+                lsig = rdata[self.data[0]['rid'],:]
+                rsig = rdata[self.data[2]['rid'],:]
+                # Get transient amplitudes
+                lta = get_transient_amplitude_simple(lsig)
+                rta = get_transient_amplitude_simple(rsig)
+                # Get signal noise
+                lsig_noise = get_transient_noise_simple(lsig)
+                rsig_noise = get_transient_noise_simple(rsig)
