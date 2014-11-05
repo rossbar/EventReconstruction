@@ -2,8 +2,9 @@ import numpy as np
 from analysisHelperFunctions import *
 from error_codes import *
 from dtypes import create_refined_edata
+from transient_analysis import *
 
-# Framewor imports
+# Framework imports
 import sys
 import os
 sys.path.append(os.path.expanduser('~')+r'/PythonFramework')
@@ -163,6 +164,9 @@ class ReadoutCluster(object):
         self.num_trigs = (ev['trigger'] == 1).sum()
         self.num_strips = len(ev)
         self.trigger_pattern = ev['trigger']
+
+    def __str__(self):
+        return str(self.data)
 
     def condense_to_edata(self, rdata):
         '''Take the data associated with the readout cluster, and condense it
