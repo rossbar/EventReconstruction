@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib.pyplot import *
 from analysisHelperFunctions import *
 from error_codes import *
 from dtypes import create_refined_edata
@@ -48,6 +49,23 @@ class PotentialEvent(object):
         '''Call side transient removal'''
         self.ge1.trim_unused_transients()
         self.ge2.trim_unused_transients()
+
+    def visualize_signals(self, rdata):
+        '''If there is only one cluster per side for any detector containing
+           clusters, plot the signals associated with that cluster.'''
+        if (self.ge1.ac.cluster_inds is None) or (self.ge2.ac.cluster_inds is None):
+            print "Data has not been clustered!"
+            return
+        cluster_lens = np.array([len(self.ge1.ac.clusters), len(self.ge1.dc.clusters), len(self.ge2.ac.clusters), len(self.ge2.dc.clusters)], dtype=int)
+        for cl in cluster_lens:
+            if cl > 1:
+                print "Multiple clusters detected, no simple visualization"
+                return
+        fig, ax = subplots(2, 2)
+        for a, c, t in zip(ax.ravel(), (self.ge1.ac.clusters, self.ge1.dc.clusters, self.ge2.ac.clusters, self.ge2.dc.clusters), ('GeI AC', 'GeI DC', 'GeII AC', 'GeII DC')):
+            c = c[0]
+            c.visualize_signals(rdata, ax=a, title=t)
+        fig.canvas.draw()
 
 class Detector(object):
     errors = []
@@ -187,6 +205,16 @@ class ReadoutCluster(object):
 
     def __str__(self):
         return str(self.data)
+
+    def visualize_signals(self, rdata, ax=None, title=None):
+        '''Plot the signals corresponding to the readout cluster'''
+        for rid in self.data['rid']: 
+            if ax is None:
+                plot(rdata[rid,:])
+            else:
+                ax.plot(rdata[rid,:])
+                if title is not None:
+                    ax.set_title(title)
 
     def condense_to_edata(self, rdata):
         '''Take the data associated with the readout cluster, and condense it
