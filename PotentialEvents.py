@@ -101,13 +101,20 @@ class Side(object):
         self.total_energy = ev[ev['trigger'] == 1]['ADC_value'].sum()
         # No clusterization yet
         self.cluster_inds = None
+        self.clusters = []
 
     def __str__(self):
         outstr = ''
-        for i, row in enumerate(self.data):
-            if self.cluster_inds is not None:
-                if i in self.cluster_inds: outstr += '\n'
-            outstr += '    ' + str(row) + '\n'
+        if len(self.clusters) == 0:
+            for i, row in enumerate(self.data):
+                if self.cluster_inds is not None:
+                    if i in self.cluster_inds: outstr += '\n'
+                outstr += '    ' + str(row) + '\n'
+        else:
+            for i, cluster in enumerate(self.clusters):
+                for row in cluster.data:
+                    outstr += '    ' + str(row) + '\n'
+                if i != len(self.clusters)-1: outstr += '\n'
         return outstr
 
     def clusterize_data(self):
@@ -115,17 +122,30 @@ class Side(object):
            strips that correlate with each other. Use strip adjacency as a 
            starting point.'''
         # Reset the clustering
-        if self.cluster_inds is not None: self.cluster_inds = None
+        if self.cluster_inds is not None:
+            self.cluster_inds = None
+            self.clusters = []
+        self.cluster_inds = np.array([0], dtype=int)
         # Clustering by trigger
         for i in range(len(self.data)-1):
             next_trig = self.data['trigger'][i+1]
             cur_trig = self.data['trigger'][i]
             if next_trig == 0 and cur_trig == 0 and (1 in self.data['trigger'][i+1:]):
                 new_ind = np.array([i+1], dtype=int)
-                if self.cluster_inds is None:
-                    self.cluster_inds = new_ind
-                else:
-                    self.cluster_inds = np.concatenate((self.cluster_inds, np.array([i+1], dtype=int)))
+                self.cluster_inds = np.concatenate((self.cluster_inds, new_ind))
+        if self.cluster_inds is None: self.cluster_inds = np.array([], dtype=int)
+        # Apply cluster indices to data to make readout cluster objects
+        if len(self.cluster_inds) == 1:
+            self.clusters.append(ReadoutCluster(self.data))
+        else:
+            i = 0
+            while i < len(self.cluster_inds)-1:
+                cluster = ReadoutCluster(self.data[self.cluster_inds[i]:self.cluster_inds[i+1]])
+                self.clusters.append(cluster)
+                i += 1
+            # Handle last cluster
+            cluster = ReadoutCluster(self.data[self.cluster_inds[i]:])
+            self.clusters.append(cluster)
 
     def remove_redundant_transients(self):
         '''Large charge deposits may cause non-adjacent neighbors to fire
