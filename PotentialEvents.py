@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib.pyplot import *
 from analysisHelperFunctions import *
 from error_codes import *
-from dtypes import create_refined_edata
+from dtypes import create_refined_edata, refined_edata_type
 from transient_analysis import *
 
 # Framework imports
@@ -66,6 +66,20 @@ class PotentialEvent(object):
             c = c[0]
             c.visualize_signals(rdata, ax=a, title=t)
         fig.canvas.draw()
+
+    def condense(self, rdata):
+        '''Call self.condense on all segmented readout clusters'''
+        out = np.zeros(0, dtype=refined_edata_type)
+        for i,cluster_list in enumerate((self.ge1.ac.clusters, self.ge1.dc.clusters, self.ge2.ac.clusters, self.ge2.dc.clusters)):
+            if len(cluster_list) > 0:
+                for cluster in cluster_list:
+                    ret = cluster.condense_to_edata(rdata)
+                    if ret is not None:
+                        out = np.concatenate((out, cluster.edata))
+                    else:
+                        print 'Encountered cluster for which analysis not implemented'
+                        return None
+        return out
 
 class Detector(object):
     errors = []
@@ -139,6 +153,8 @@ class Side(object):
         '''Given all the readouts on the side, try to break them down into
            strips that correlate with each other. Use strip adjacency as a 
            starting point.'''
+        # If there is no data to cluster, ignore
+        if len(self.data) == 0: return
         # Reset the clustering
         if self.cluster_inds is not None:
             self.cluster_inds = None
@@ -202,6 +218,7 @@ class ReadoutCluster(object):
         self.num_trigs = (ev['trigger'] == 1).sum()
         self.num_strips = len(ev)
         self.trigger_pattern = ev['trigger']
+        self.edata = None
 
     def __str__(self):
         return str(self.data)
@@ -228,6 +245,7 @@ class ReadoutCluster(object):
             # Fill in t50
             signal = rdata[cc_strip['rid']]
             t50 = search_t50(signal)
+            if np.isfinite(t50): edata_out['t50'] = t50
             # If it has a transient on each side, do transient analysis
             if np.array_equal(self.trigger_pattern, np.array([0,1,0])):
                 # Get signals
@@ -239,3 +257,16 @@ class ReadoutCluster(object):
                 # Get signal noise
                 lsig_noise = get_transient_noise_simple(lsig)
                 rsig_noise = get_transient_noise_simple(rsig)
+                # If signals are above noise, compute transient ratio
+                if lta > lsig_noise and rta > rsig_noise:
+                    R = (rta - lta)/(rta + lta)
+                    # Compute uncertainty
+                    SNR_l = lta/lsig_noise
+                    SNR_r = rta/rsig_noise
+                    R_sig = 2*((lta*rta)/(lta+rta)**2)*\
+                            ((1/SNR_l)**2 + (1/SNR_r)**2)**(0.5)
+                    edata_out['R'] = R
+                    edata_out['sigma_R'] = R_sig
+            self.edata = edata_out
+            return 0
+        else: return None

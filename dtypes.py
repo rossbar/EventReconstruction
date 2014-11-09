@@ -31,3 +31,4 @@ def create_refined_edata(edata):
     out['ADC_value'] = edata['ADC_value']                                       
     out['detector'] = edata['detector']                                         
     out['trigger'] = edata['trigger']                                           
+    return out
