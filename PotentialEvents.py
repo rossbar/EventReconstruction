@@ -53,9 +53,9 @@ class PotentialEvent(object):
     def visualize_signals(self, rdata):
         '''If there is only one cluster per side for any detector containing
            clusters, plot the signals associated with that cluster.'''
-        if (self.ge1.ac.cluster_inds is None) or (self.ge2.ac.cluster_inds is None):
-            print "Data has not been clustered!"
-            return
+#        if (self.ge1.ac.cluster_inds is None) or (self.ge2.ac.cluster_inds is None):
+#            print "Data has not been clustered!"
+#            return
         cluster_lens = np.array([len(self.ge1.ac.clusters), len(self.ge1.dc.clusters), len(self.ge2.ac.clusters), len(self.ge2.dc.clusters)], dtype=int)
         for cl in cluster_lens:
             if cl > 1:
@@ -63,8 +63,9 @@ class PotentialEvent(object):
                 return
         fig, ax = subplots(2, 2)
         for a, c, t in zip(ax.ravel(), (self.ge1.ac.clusters, self.ge1.dc.clusters, self.ge2.ac.clusters, self.ge2.dc.clusters), ('GeI AC', 'GeI DC', 'GeII AC', 'GeII DC')):
-            c = c[0]
-            c.visualize_signals(rdata, ax=a, title=t)
+            if len(c) > 0:
+                c = c[0]
+                c.visualize_signals(rdata, ax=a, title=t)
         fig.canvas.draw()
 
     def condense(self, rdata):
